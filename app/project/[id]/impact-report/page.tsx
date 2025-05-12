@@ -896,23 +896,16 @@ export default function ImpactReportPage() {
   // Load project data and any saved/submitted report data from Firestore
   useEffect(() => {
     const fetchProjectData = async () => {
-      // Ensure user and necessary params are available
       if (!user || !projectId || !charityName) {
           console.error("fetchProjectData: Missing user, projectId, or charityName.");
-          setIsLoading(false); // Stop loading if critical info is missing
-          // Optionally redirect or show an error message
+          setIsLoading(false);
           return;
       }
-
-      console.log(`fetchProjectData: Fetching data for charity '${charityName}', project '${projectId}'`);
       setIsLoading(true);
-      startLoading(); // Start global loading
+      startLoading();
 
       try {
-        // Check if this is an early submission (from URL param)
         setIsEarlySubmission(earlySubmission);
-
-        // Format the due date if provided (from URL param)
         if (searchParams && searchParams.get("dueDate")) {
           try {
             const dueDate = new Date(searchParams.get("dueDate") as string);
@@ -922,90 +915,92 @@ export default function ImpactReportPage() {
           }
         }
 
-        // Get the Firestore document reference for the project
         const projectDocRef = doc(db, "charities", charityName, "projects", projectId);
         const docSnap = await getDoc(projectDocRef);
 
         if (docSnap.exists()) {
           const projectDbData = docSnap.data();
           const status = projectDbData.impactReportStatus || 'not-started';
-          const reportData = projectDbData.impactReport || {}; // Get saved report data or empty object
+          const reportDataFromDb = projectDbData.impactReport || {}; // Saved report-specific data
           const dbRejectionComment = projectDbData.rejectionComment || null;
 
-          console.log(`fetchProjectData: Found project. Status: ${status}`, projectDbData);
-
-          // Set the basic project data state (name, etc.)
           setProjectData({
             id: projectId,
             name: projectDbData.projectName || `Project ${projectId}`,
-            // Add other project-level fields if needed by the UI
           });
 
-          let formData: Partial<FormValues> = {}; // Initialize empty formData of the correct partial type
+          let currentReportData: Partial<FormValues> = {}; 
 
           if (status === 'submitted' || status === 'approved') {
-            console.log("fetchProjectData: Report status indicates view mode (submitted/approved).");
             setIsViewMode(true);
-            setRejectionCommentToDisplay(null); // Clear any previous rejection comment
-            // Use the data stored in the impactReport field for submitted/approved
-            formData = { ...reportData };
+            setRejectionCommentToDisplay(null);
+            currentReportData = { ...reportDataFromDb };
           } else if (status === 'draft' || status === 'rejected') {
-            console.log(`fetchProjectData: Report status is ${status}. Loading saved data in edit mode.`);
             setIsViewMode(false);
             if (status === 'rejected' && dbRejectionComment) {
               setRejectionCommentToDisplay(dbRejectionComment);
             } else {
-              setRejectionCommentToDisplay(null); // Clear if not rejected or no comment
+              setRejectionCommentToDisplay(null);
             }
-            // Use the data stored in the impactReport field for drafts/rejected
-            formData = { ...reportData };
-          } else { // 'not-started' or null/undefined
-            console.log("fetchProjectData: Report status is not-started. Using defaults.");
+            currentReportData = { ...reportDataFromDb };
+          } else { // 'not-started' or other
             setIsViewMode(false);
-            // Use default values, pre-fill only basic info
-            formData = {
-               organizationName: charityName,
-               charityRegistrationNumber: charityRegNumber,
-               telephone: "+44 ", // Default prefix
-               projectCountry: [], // Default empty
-               // Add any other *essential* defaults NOT covered by form's defaultValues
+            // For a new report, some fields might default or come from projectDbData
+            currentReportData = {
+               telephone: "+44 ", 
+               projectCountry: projectDbData.projectCountry || [], 
+               // Let Zod defaults handle most, but override with master project data below
             };
           }
 
-          // Prepare data for the form, converting Timestamps and handling potential missing fields
           const preparedFormData = {
-              // Override with fetched data
-              ...formData,
-              // Ensure name/reg number are from the query params primarily, then DB, then default
-              organizationName: charityName || projectDbData.charityName || '',
-              charityRegistrationNumber: charityRegNumber || projectDbData.charityRegistrationNumber || '',
-              // Convert Firestore Timestamps back to JS Dates or handle ISO strings
-              dateFundingStarted: formData.dateFundingStarted instanceof Timestamp
-                  ? formData.dateFundingStarted.toDate()
-                  : formData.dateFundingStarted && typeof formData.dateFundingStarted === 'string' ? new Date(formData.dateFundingStarted) : undefined,
-              dateImpactReportSubmitted: formData.dateImpactReportSubmitted instanceof Timestamp
-                  ? formData.dateImpactReportSubmitted.toDate()
-                  : formData.dateImpactReportSubmitted && typeof formData.dateImpactReportSubmitted === 'string' ? new Date(formData.dateImpactReportSubmitted) : new Date(), // Default to today if missing/invalid?
-              // Ensure arrays are arrays (handle potential issues from Firestore save)
-              projectCountry: Array.isArray(formData.projectCountry) ? formData.projectCountry : [],
-              detailedEthnicities: Array.isArray(formData.detailedEthnicities) ? formData.detailedEthnicities : [],
-              geographyBreakdown: Array.isArray(formData.geographyBreakdown) ? formData.geographyBreakdown : [],
-              outcome1Images: Array.isArray(formData.outcome1Images) ? formData.outcome1Images : [],
-              outcome2Images: Array.isArray(formData.outcome2Images) ? formData.outcome2Images : [],
-              outcome3Images: Array.isArray(formData.outcome3Images) ? formData.outcome3Images : [],
-              // Set contract URL from saved data
-              partnerContract: formData.partnerContract, // Preserve the object { url, name, uploadedAt } if exists
-          } as FormValues; // Assert the final type to ensure compatibility with form.reset
+            ...form.formState.defaultValues, // Start with Zod defaults
+            ...currentReportData,             // Overlay with report-specific data (draft/submitted)
+            
+            // --- Ensure master project data overrides --- 
+            organizationName: charityName || projectDbData.charityName || '',
+            charityRegistrationNumber: charityRegNumber || projectDbData.charityRegistrationNumber || '',
+            projectName: projectDbData.projectName || currentReportData.projectName || '',
+            totalFundingAmount: projectDbData.fundingAmount !== undefined ? projectDbData.fundingAmount : (currentReportData.totalFundingAmount || 0),
+            
+            // **** THIS IS THE KEY CHANGE FOR dateFundingStarted ****
+            dateFundingStarted: projectDbData.dateFundingGiven instanceof Timestamp
+                ? projectDbData.dateFundingGiven.toDate()
+                : (projectDbData.dateFundingGiven && typeof projectDbData.dateFundingGiven === 'string'
+                    ? new Date(projectDbData.dateFundingGiven)
+                    : undefined),
 
-          // Set the contract file URL state specifically if present
+            // dateImpactReportSubmitted should come from currentReportData or be new if not set
+            dateImpactReportSubmitted: currentReportData.dateImpactReportSubmitted instanceof Timestamp
+                ? currentReportData.dateImpactReportSubmitted.toDate()
+                : (currentReportData.dateImpactReportSubmitted && typeof currentReportData.dateImpactReportSubmitted === 'string'
+                    ? new Date(currentReportData.dateImpactReportSubmitted)
+                    : new Date()),
+            
+            projectCountry: Array.isArray(currentReportData.projectCountry) && currentReportData.projectCountry.length > 0 
+                ? currentReportData.projectCountry 
+                : (projectDbData.projectCountry || []),
+            
+            priorityObjective: projectDbData.priorityObjective || currentReportData.priorityObjective || '',
+            coverageObjective: projectDbData.coverageObjective || currentReportData.coverageObjective || '',
+            projectSummary: projectDbData.projectSummary || currentReportData.projectSummary || '',
+
+            // Ensure other arrays are initialized properly if they might be undefined in currentReportData
+            detailedEthnicities: Array.isArray(currentReportData.detailedEthnicities) ? currentReportData.detailedEthnicities : [],
+            geographyBreakdown: Array.isArray(currentReportData.geographyBreakdown) ? currentReportData.geographyBreakdown : [],
+            outcome1Images: Array.isArray(currentReportData.outcome1Images) ? currentReportData.outcome1Images : [],
+            outcome2Images: Array.isArray(currentReportData.outcome2Images) ? currentReportData.outcome2Images : [],
+            outcome3Images: Array.isArray(currentReportData.outcome3Images) ? currentReportData.outcome3Images : [],
+            partnerContract: currentReportData.partnerContract, // This comes from the report data (uploaded file info)
+
+          } as FormValues;
+
           if (preparedFormData.partnerContract?.url) {
                setContractFileURL(preparedFormData.partnerContract.url);
           }
 
-          console.log("fetchProjectData: Resetting form with prepared data:", preparedFormData);
-          form.reset(preparedFormData); // Reset the form with the fetched/prepared data
+          form.reset(preparedFormData);
 
-          // Set today's date if it's an early submission and not already set
           if (earlySubmission && !form.getValues("dateImpactReportSubmitted")) {
               form.setValue("dateImpactReportSubmitted", new Date());
           }
@@ -1013,23 +1008,21 @@ export default function ImpactReportPage() {
         } else {
           console.error(`fetchProjectData: Project document not found at charities/${charityName}/projects/${projectId}`);
           toast.error("Project data not found.");
-          // Handle not found case - maybe redirect or show specific error
         }
       } catch (error) {
         console.error("Error fetching project data from Firestore:", error);
         toast.error("Failed to load project data.");
       } finally {
-        // Add a small delay for smoother loading transition
         setTimeout(() => {
           setIsLoading(false);
-          stopLoading(); // Stop global loading
-        }, 300); // Slightly increased delay
+          stopLoading();
+        }, 300);
       }
     };
 
     fetchProjectData();
 
-  }, [user, projectId, charityName, charityRegNumber, earlySubmission, searchParams, form, startLoading, stopLoading]); // Added form, start/stopLoading to dependency array
+  }, [user, projectId, charityName, charityRegNumber, earlySubmission, searchParams, form, startLoading, stopLoading]);
 
   // Check if contract is required whenever partnership involvement changes
   useEffect(() => {

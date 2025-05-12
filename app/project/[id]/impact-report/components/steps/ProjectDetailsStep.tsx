@@ -284,10 +284,12 @@ export default function ProjectDetailsStep({
                     min="0"
                     placeholder="0.00"
                     {...field}
-                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                    disabled={isViewMode}
+                    readOnly
+                    disabled={true}
+                    className="bg-gray-50"
                   />
                 </FormControl>
+                <FormDescription>This amount is set from the gfa</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -304,10 +306,10 @@ export default function ProjectDetailsStep({
                     <FormControl>
                       <Button
                         variant={"outline"}
-                        className={`w-full pl-3 text-left font-normal ${
+                        className={`w-full pl-3 text-left font-normal bg-gray-50 ${
                           !field.value && "text-muted-foreground"
                         }`}
-                        disabled={isViewMode}
+                        disabled={true}
                       >
                         {field.value ? (
                           format(field.value, "dd/MM/yyyy")
@@ -324,10 +326,11 @@ export default function ProjectDetailsStep({
                       selected={field.value}
                       onSelect={field.onChange}
                       initialFocus
-                      disabled={isViewMode}
+                      disabled={true}
                     />
                   </PopoverContent>
                 </Popover>
+                <FormDescription>This date is set from the gfa</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
