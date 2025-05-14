@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import {
   // CalendarIcon, // Unused
   Save as SaveIcon,
@@ -16,6 +16,7 @@ import {
   Search,
   Calendar as CalendarIconOutline,
   Info as InfoIcon, // Add InfoIcon for the Alert
+  Download as DownloadIcon, // Add Download icon import
   // FileText, // Unused
 } from "lucide-react";
 import { toast } from "sonner";
@@ -58,6 +59,9 @@ import ExpectedOutcomesStep from "./components/steps/ExpectedOutcomesStep";
 import AchievedOutcomesStep from "./components/steps/AchievedOutcomesStep";
 import OutcomeAnalysisStep from "./components/steps/OutcomeAnalysisStep";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Import Alert components
+
+// Import react-to-print
+import { useReactToPrint } from 'react-to-print'; 
 
 // Define schema for image file metadata
 const fileMetadataSchema = z.object({
@@ -800,6 +804,107 @@ function CountrySelect({
   );
 }
 
+// --- ADD PRINT HELPERS --- 
+const formatDateForPrint = (dateString?: string | Date | null): string => {
+  if (!dateString) return 'N/A';
+  try {
+    // Handle ISO strings from Firestore and Date objects
+    const date = typeof dateString === 'string' ? parseISO(dateString) : (dateString instanceof Timestamp ? dateString.toDate() : dateString);
+    if (!date || isNaN(date.getTime())) return 'Invalid Date';
+    return format(date, 'dd MMM yyyy');
+  } catch (error) {
+    console.error("Error formatting date for print:", dateString, error);
+    return 'Invalid Date';
+  }
+};
+
+const formatCurrencyForPrint = (amount?: number | string | null): string => {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (num === undefined || num === null || isNaN(num)) return '£N/A';
+  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(num);
+};
+
+// --- ADD PRINTABLE COMPONENT --- 
+interface PrintableReportProps {
+  reportData: FormValues;
+}
+
+const PrintableReport = React.forwardRef<HTMLDivElement, PrintableReportProps>(({ reportData }, ref) => {
+  // Basic styles - can be expanded
+  const printStyles: React.CSSProperties = { padding: '20mm', fontFamily: 'Arial, sans-serif', color: '#000', fontSize: '10pt' };
+  const sectionStyle: React.CSSProperties = { marginTop: '15px', paddingTop: '10px', borderTop: '1px solid #ccc' };
+  const headingStyle: React.CSSProperties = { fontSize: '14pt', fontWeight: 'bold', marginBottom: '10px' };
+  const subHeadingStyle: React.CSSProperties = { fontSize: '12pt', fontWeight: 'bold', marginTop: '10px', marginBottom: '5px' };
+  const paraStyle: React.CSSProperties = { marginBottom: '5px', lineHeight: '1.4' };
+  const strongStyle: React.CSSProperties = { fontWeight: 'bold' };
+
+  // Helper to render outcome sections cleanly
+  const renderOutcomeSection = (outcomeNum: 1 | 2 | 3) => {
+    const qualitative = reportData[`outcome${outcomeNum}Qualitative` as keyof FormValues] as string | undefined;
+    const quantitative = reportData[`outcome${outcomeNum}Quantitative` as keyof FormValues] as string | undefined;
+    const achieved = reportData[`outcome${outcomeNum}Achieved` as keyof FormValues] as string | undefined;
+    const include = reportData[`includeOutcome${outcomeNum}` as keyof FormValues] as boolean | undefined;
+    const includeAchieved = reportData[`includeAchievedOutcome${outcomeNum}` as keyof FormValues] as boolean | undefined;
+
+    // Only render if the outcome was included OR it's outcome 1
+    if (outcomeNum === 1 || include) {
+      return (
+        <div style={sectionStyle}>
+          <h2 style={subHeadingStyle}>Outcome {outcomeNum}</h2>
+          {qualitative && <p style={paraStyle}><strong style={strongStyle}>Expected Qualitative:</strong> {qualitative}</p>}
+          {quantitative && <p style={paraStyle}><strong style={strongStyle}>Expected Quantitative:</strong> {quantitative}</p>}
+          {(includeAchieved || achieved) && <p style={paraStyle}><strong style={strongStyle}>Achieved:</strong> {achieved || 'N/A'}</p>} 
+          {/* Add achieved funding details, images, story etc. here if needed */}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div ref={ref} style={printStyles}>
+      <h1 style={headingStyle}>Impact Report: {reportData.projectName || 'N/A'}</h1>
+      <p style={paraStyle}><strong style={strongStyle}>Charity:</strong> {reportData.organizationName || 'N/A'}</p>
+      <p style={paraStyle}><strong style={strongStyle}>Funding Amount:</strong> {formatCurrencyForPrint(reportData.totalFundingAmount)}</p>
+      <p style={paraStyle}><strong style={strongStyle}>Funding Date:</strong> {formatDateForPrint(reportData.dateFundingStarted)}</p>
+      <p style={paraStyle}><strong style={strongStyle}>Report Submitted:</strong> {formatDateForPrint(reportData.dateImpactReportSubmitted)}</p>
+      
+      <div style={sectionStyle}>
+        <h2 style={subHeadingStyle}>Project Summary</h2>
+        <p style={paraStyle}>{reportData.projectSummary || 'N/A'}</p>
+      </div>
+
+      {/* Render Outcome sections */} 
+      {renderOutcomeSection(1)}
+      {renderOutcomeSection(2)}
+      {renderOutcomeSection(3)}
+
+      {/* Add Beneficiary Details section */}
+      <div style={sectionStyle}>
+          <h2 style={subHeadingStyle}>Beneficiary Details</h2>
+          <p style={paraStyle}><strong style={strongStyle}>Direct Beneficiaries:</strong> {reportData.directBeneficiaries ?? 'N/A'}</p>
+          <p style={paraStyle}><strong style={strongStyle}>Indirect Beneficiaries:</strong> {reportData.indirectBeneficiaries ?? 'N/A'}</p>
+          {/* Add more beneficiary breakdown if needed */}
+      </div>
+
+      {/* Add Contact Details section */}
+       <div style={sectionStyle}>
+          <h2 style={subHeadingStyle}>Contact Details</h2>
+          <p style={paraStyle}><strong style={strongStyle}>Name:</strong> {reportData.contactName || 'N/A'}</p>
+          <p style={paraStyle}><strong style={strongStyle}>Position:</strong> {reportData.position || 'N/A'}</p>
+          <p style={paraStyle}><strong style={strongStyle}>Email:</strong> {reportData.email || 'N/A'}</p>
+          <p style={paraStyle}><strong style={strongStyle}>Telephone:</strong> {reportData.telephone || 'N/A'}</p>
+       </div>
+
+      <div style={{ ...sectionStyle, borderTop: 'none', marginTop: '30px', textAlign: 'center', fontSize: '8pt', color: '#666' }}>
+        Generated from Impact Engine
+      </div>
+    </div>
+  );
+});
+PrintableReport.displayName = 'PrintableReport';
+// --- END PRINTABLE COMPONENT ---
+
 export default function ImpactReportPage() {
   const params = useParams() as { id: string };
   const router = useRouter();
@@ -825,6 +930,9 @@ export default function ImpactReportPage() {
   const earlySubmission = searchParams
     ? searchParams.get("early") === "true"
     : false;
+
+  // Ref for printable component
+  const printableRef = useRef<HTMLDivElement>(null);
 
   // Initialize form with additional fields
   const form = useForm<FormValues>({
@@ -882,6 +990,24 @@ export default function ImpactReportPage() {
       outcome3Images: [],
     },
   });
+
+  // --- MODIFY PRINT HOOK SETUP --- 
+  const handlePrint = useReactToPrint({
+    contentRef: printableRef,
+    documentTitle: `${form.getValues("projectName") || 'Impact'}_Report`,
+    onPrintError: (error) => {
+        console.error("Error printing report:", error);
+        toast.error("Failed to initiate PDF download.");
+    },
+    pageStyle: `
+      @page { size: A4; margin: 20mm; }
+      @media print {
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .no-print { display: none; }
+      }
+    `,
+  });
+  // --- END PRINT HOOK SETUP ---
 
   // Add animation effect when page is loaded
   useEffect(() => {
@@ -1384,7 +1510,7 @@ export default function ImpactReportPage() {
 
   return (
     <>
-      <Header userEmail={user.email} />
+      <Header />
       <div className="container mx-auto py-8 px-4">
         <Card
           className={`max-w-4xl mx-auto ${isViewMode ? "border-green-500" : rejectionCommentToDisplay ? "border-yellow-500" : ""} 
@@ -1600,7 +1726,7 @@ export default function ImpactReportPage() {
                     </Button>
                   )}
 
-                  <div className="space-x-2">
+                  <div className="space-x-2 flex items-center">
                     <Button
                       type="button"
                       variant="outline"
@@ -1609,7 +1735,20 @@ export default function ImpactReportPage() {
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       {isViewMode ? "Back to Projects" : "Cancel"}
                     </Button>
+                    
+                    {/* ADD DOWNLOAD BUTTON - visible only in view mode */} 
+                    {isViewMode && (
+                        <Button 
+                            type="button"
+                            variant="outline"
+                            onClick={handlePrint} 
+                        >
+                            <DownloadIcon className="mr-2 h-4 w-4" />
+                            Download PDF
+                        </Button>
+                    )}
 
+                    {/* Submit Button - visible only in edit mode on last step */}
                     {!isViewMode && currentStep === 3 && (
                       <Button 
                         type="submit" 
@@ -1626,6 +1765,14 @@ export default function ImpactReportPage() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* --- ADD HIDDEN PRINTABLE COMPONENT RENDER --- */}
+      {isViewMode && (
+          <div style={{ display: 'none' }}>
+              <PrintableReport ref={printableRef} reportData={form.getValues()} />
+          </div>
+      )}
+      {/* --- END HIDDEN PRINTABLE COMPONENT RENDER --- */}
     </>
   );
 }
