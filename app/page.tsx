@@ -46,8 +46,8 @@ export default function Home() {
                   </Button>
                 </div>
               </div>
-              <div className="flex-1 relative">
-                <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-6 md:p-8">
+              <div className="flex-1 relative flex justify-center">
+                <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-6 md:p-8 w-80 sm:w-96 md:w-full">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="h-3 w-3 rounded-full bg-red-400"></div>
                     <div className="h-3 w-3 rounded-full bg-yellow-400"></div>
