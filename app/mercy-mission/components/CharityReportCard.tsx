@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { format, differenceInDays, differenceInMilliseconds } from "date-fns";
-import { Eye, CheckCircle, AlertCircle, XCircle, Clock, FileText, Calendar, Download } from "lucide-react";
+import { Eye, CheckCircle, AlertCircle, XCircle, Clock, FileText, Calendar } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -159,62 +159,61 @@ export function CharityReportCard({ charity, onViewReport }: CharityReportCardPr
                  </div>
             </CardContent>
             <CardFooter>
-                 {/* Conditionally render and style the button based on status */}
-                  {charity.reportStatus === 'approved' && charity.id && (
-                    <div className="flex w-full space-x-2">
+                {(charity.reportStatus?.toLowerCase() === 'not started' ) ? (
+                  <Button size="sm" className="w-full" variant="outline" disabled>
+                    View Impact Report
+                  </Button>
+                ) : (
+                  <>
+                    {charity.reportStatus === 'approved' && charity.id && (
+                      <div className="flex w-full space-x-2">
+
                         <Button
-                            size="sm"
-                            variant="outline" // Example: distinct style for download
-                            className="flex-1 flex items-center justify-center"
-                            onClick={() => console.log("Download clicked for:", charity.id)} // Placeholder action
+                          size="sm"
+                          className="flex-1 flex items-center justify-center bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => {
+                            if (charity.name) {
+                              onViewReport(charity.name, charity.id)
+                            } else {
+                              console.error("Cannot view report: Charity name is missing.");
+                            }
+                          }}
                         >
-                            <Download className="mr-2 h-4 w-4" />
-                            Download
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Impact Report
                         </Button>
-                        <Button
-                            size="sm"
-                            className="flex-1 flex items-center justify-center bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => {
-                                if (charity.name) {
-                                    onViewReport(charity.name, charity.id)
-                                } else {
-                                    console.error("Cannot view report: Charity name is missing.");
-                                }
-                            }}
-                        >
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Impact Report
-                        </Button>
-                    </div>
-                  )}
-                  {(charity.reportStatus === 'submitted' || charity.reportStatus === 'rejected' || charity.reportStatus === 'draft') && charity.id && (
-                    <Button
+                      </div>
+                    )}
+                    {(charity.reportStatus === 'submitted' || charity.reportStatus === 'rejected' || charity.reportStatus === 'draft') && charity.id && (
+                      <Button
                         size="sm"
                         className={`w-full flex items-center justify-center bg-blue-500 hover:bg-blue-700 text-white ${charity.reportStatus === 'draft' ? 'opacity-50 cursor-not-allowed' : ''}`}
                         onClick={() => {
-                            if (charity.reportStatus !== 'draft') { // Only allow click if not draft
-                                if (charity.name) {
-                                    onViewReport(charity.name, charity.id)
-                                } else {
-                                    console.error("Cannot view report: Charity name is missing.");
-                                }
+                          if (charity.reportStatus !== 'draft') {
+                            if (charity.name) {
+                              onViewReport(charity.name, charity.id)
+                            } else {
+                              console.error("Cannot view report: Charity name is missing.");
                             }
+                          }
                         }}
-                        disabled={charity.reportStatus === 'draft'} // Disable button if draft
-                    >
+                        disabled={charity.reportStatus === 'draft'}
+                      >
                         <Eye className="mr-2 h-4 w-4" />
-                        Review Impact Report 
-                    </Button>
-                )}
-                {/* Placeholder for non-actionable statuses */}
-                {!(charity.reportStatus === 'submitted' || charity.reportStatus === 'rejected' || charity.reportStatus === 'approved' || charity.reportStatus === 'draft') && (
-                    <div className="text-sm text-muted-foreground italic h-[36px] flex items-center justify-center w-full">
+                        Review Impact Report
+                      </Button>
+                    )}
+                    {/* Placeholder for non-actionable statuses */}
+                    {!(charity.reportStatus === 'submitted' || charity.reportStatus === 'rejected' || charity.reportStatus === 'approved' || charity.reportStatus === 'draft') && (
+                      <div className="text-sm text-muted-foreground italic h-[36px] flex items-center justify-center w-full">
                         {daysRemaining !== null && daysRemaining < 0 ? (
-                            <span className="text-destructive font-medium">Report Overdue</span>
+                          <span className="text-destructive font-medium">Report Overdue</span>
                         ) : (
-                           <span></span>
+                          <span></span>
                         )}
-                    </div>
+                      </div>
+                    )}
+                  </>
                 )}
             </CardFooter>
         </Card>
