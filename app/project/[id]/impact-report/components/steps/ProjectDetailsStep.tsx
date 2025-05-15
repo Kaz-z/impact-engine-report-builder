@@ -55,7 +55,7 @@ const priorities = Object.keys(mercyMissionData);
 
 // Props for the component
 interface ProjectDetailsStepProps {
-  form: UseFormReturn<FormValues, object, undefined>;
+  form: UseFormReturn<FormValues>;
   isViewMode: boolean;
   nextStep: () => void;
   CountrySelect: React.ComponentType<{
