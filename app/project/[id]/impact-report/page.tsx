@@ -490,6 +490,10 @@ const formSchema = z
     outcome3Story: z.string().max(1500, "Max 1500 characters").optional(),
     outcome3Interviews: z.string().optional(),
     outcome3SocialMedia: z.string().optional(),
+    locality: z.string().min(1, "Locality is required"),
+    region: z.string().min(1, "Region is required"),
+    city: z.string().min(1, "City is required"),
+    postcode: z.string().optional(),
   })
   // Transform to set includeAchievedOutcome flags based on achieved data
   .transform((data) => {
@@ -663,6 +667,10 @@ export type FormValues = z.infer<typeof formSchema> & {
     uploadedAt?: string;
     fileName?: string;
   };
+  locality: string;
+  region: string;
+  city: string;
+  postcode?: string;
 };
 
 // Define type for Firestore data structure (dates as strings)
@@ -988,6 +996,10 @@ export default function ImpactReportPage() {
       outcome1Images: [],
       outcome2Images: [],
       outcome3Images: [],
+      locality: "",
+      region: "",
+      city: "",
+      postcode: "",
     },
   });
 

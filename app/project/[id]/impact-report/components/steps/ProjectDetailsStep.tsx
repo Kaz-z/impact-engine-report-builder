@@ -459,7 +459,7 @@ export default function ProjectDetailsStep({
           </div>
 
           {/* Project Countries */}
-          <div className="md:col-span-1">
+          <div className="md:col-span-2">
             <FormField
               control={form.control}
               name="projectCountry"
@@ -474,6 +474,66 @@ export default function ProjectDetailsStep({
                   <FormDescription>
                     Select the countries where the project operates.
                   </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Locality and Region */}
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="locality"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Locality*</FormLabel>
+                  <FormControl>
+                    <Input {...field} disabled={isViewMode} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="region"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Region*</FormLabel>
+                  <FormControl>
+                    <Input {...field} disabled={isViewMode} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* City and Postcode */}
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="city"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>City*</FormLabel>
+                  <FormControl>
+                    <Input {...field} disabled={isViewMode} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="postcode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Postcode (Optional)</FormLabel>
+                  <FormControl>
+                    <Input {...field} disabled={isViewMode} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
