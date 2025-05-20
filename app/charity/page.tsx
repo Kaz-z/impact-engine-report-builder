@@ -353,35 +353,50 @@ export default function CharityDashboard() {
                 <TabsTrigger value="upcoming">Upcoming Reports</TabsTrigger>
               </TabsList>
               <TabsContent value="all" className="mt-6">
+                {charity === "Barrow-in-Furness Enterprise & Employability" && (
+                  <img
+                    className="w-full h-96 rounded-md object-cover mb-8"
+                    src="https://res.cloudinary.com/subframe/image/upload/v1747780394/uploads/13131/pnnytpawyoltajejfcsh.png"
+                    alt="Barrow-In-Furness"
+                  />
+                )}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                   {/* Use original ProjectCard function */}
                   {sortProjects(filterProjectsByDate(projects)).map((project) => (
-                    <ProjectCard
-                      key={project.id}
-                      project={project}
-                      getReportStatusBadge={getReportStatusBadge}
-                      getProgressPercentage={getProgressPercentage}
-                      charityName={charity}
-                      charityRegNumber={charityRegNumber}
-                    />
+                    <div className="h-full" key={project.id}>
+                      <ProjectCard
+                        project={project}
+                        getReportStatusBadge={getReportStatusBadge}
+                        getProgressPercentage={getProgressPercentage}
+                        charityName={charity}
+                        charityRegNumber={charityRegNumber}
+                      />
+                    </div>
                   ))}
                 </div>
               </TabsContent>
               <TabsContent value="upcoming" className="mt-6">
+                {charity === "Barrow-in-Furness Enterprise & Employability" && (
+                  <img
+                    className="w-full h-96 rounded-md object-cover mb-8"
+                    src="https://res.cloudinary.com/subframe/image/upload/v1747780394/uploads/13131/pnnytpawyoltajejfcsh.png"
+                    alt="Barrow-In-Furness"
+                  />
+                )}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {sortProjects(
                     projects.filter(
                       (p) => getDaysRemaining(p.dateImpactReportDue) > 0
                     )
                   ).map((project) => (
-                     <ProjectCard
-                      key={project.id}
-                      project={project}
-                      getReportStatusBadge={getReportStatusBadge}
-                      getProgressPercentage={getProgressPercentage}
-                      charityName={charity}
-                      charityRegNumber={charityRegNumber}
-                    />
+                    <div className="h-full" key={project.id}>
+                      <ProjectCard
+                        project={project}
+                        getReportStatusBadge={getReportStatusBadge}
+                        getProgressPercentage={getProgressPercentage}
+                        charityName={charity}
+                        charityRegNumber={charityRegNumber}
+                      />
+                    </div>
                   ))}
                 </div>
               </TabsContent>
@@ -503,7 +518,7 @@ function ProjectCard({
   };
 
   return (
-    <Card>
+    <Card className="flex flex-col h-full">
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
@@ -516,7 +531,7 @@ function ProjectCard({
           {getReportStatusBadge(project.impactReportStatus, project.dateImpactReportDue)}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex-grow space-y-4">
         <div>
           <h4 className="text-sm font-medium mb-2">Objectives</h4>
           <ul className="space-y-1">
@@ -553,7 +568,7 @@ function ProjectCard({
           </div>
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="mt-auto">
         {/* Render the button returned by getButtonContent */}
         {getButtonContent()}
       </CardFooter>
