@@ -1,8 +1,8 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
-import { Filter, Search } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Filter, Search, Landmark, Target, Handshake } from "lucide-react";
 import { Loading } from "../components/Loading";
 import {
   Card,
@@ -41,6 +41,19 @@ export default function MercyMissionDashboard() {
   const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'submitted', 'due-soon', 'overdue', 'approved', 'rejected'
   const [searchQuery, setSearchQuery] = useState(""); // Added state for search query
   const [loading, setLoading] = useState(true); // Local loading state for this component
+
+  // Calculate metrics using useMemo
+  const totalInvestment = useMemo(() => {
+    return filteredCharities.reduce((sum, project) => sum + (project.fundingAmount || 0), 0);
+  }, [filteredCharities]);
+
+  const numberOfProjects = useMemo(() => {
+    return filteredCharities.length;
+  }, [filteredCharities]);
+
+  const partnersEngagedCount = useMemo(() => {
+    return filteredCharities.filter(project => project.impactReport?.hasPartners === true).length;
+  }, [filteredCharities]);
 
   useEffect(() => {
     // Fetch data from Firestore
@@ -167,6 +180,8 @@ export default function MercyMissionDashboard() {
     <div className="flex flex-col min-h-screen">
       <Header /> {/* Removed userType prop */}
       <main className="flex-grow p-6 bg-gray-50">
+        
+
         <Card>
           <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
@@ -211,6 +226,50 @@ export default function MercyMissionDashboard() {
             </div>
           </CardHeader>
           <CardContent>
+            {/* Metric Cards Section - Moved here and restyled */}
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Total Investment Card */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-cyan-50 rounded-t-lg">
+                  <CardTitle className="text-sm font-medium">
+                    Total Investment
+                  </CardTitle>
+                  <Landmark className="h-4 w-4 text-cyan-600" />
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-2xl font-bold">
+                    £{totalInvestment.toLocaleString()}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Active Projects Card */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-green-50 rounded-t-lg">
+                  <CardTitle className="text-sm font-medium">
+                    Active Projects
+                  </CardTitle>
+                  <Target className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-2xl font-bold">{numberOfProjects}</div>
+                </CardContent>
+              </Card>
+
+              {/* Partners Engaged Card */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-orange-50 rounded-t-lg">
+                  <CardTitle className="text-sm font-medium">
+                    Partners Engaged
+                  </CardTitle>
+                  <Handshake className="h-4 w-4 text-orange-600" />
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <div className="text-2xl font-bold">{partnersEngagedCount}</div>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Grid layout for charity cards */}
             {filteredCharities.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
