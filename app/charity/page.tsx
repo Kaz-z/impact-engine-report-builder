@@ -33,6 +33,7 @@ import { useAuth } from "../context/authContext";
 import { db } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useLoading } from "../context/loadingContext";
+import Image from "next/image";
 // Sample project data
 const sampleProjects: Project[] = [
   {
@@ -354,10 +355,12 @@ export default function CharityDashboard() {
               </TabsList>
               <TabsContent value="all" className="mt-6">
                 {charity === "Barrow-in-Furness Enterprise & Employability" && (
-                  <img
+                  <Image
                     className="w-full h-96 rounded-md object-cover mb-8"
                     src="https://res.cloudinary.com/subframe/image/upload/v1747780394/uploads/13131/pnnytpawyoltajejfcsh.png"
                     alt="Barrow-In-Furness"
+                    width={1200}
+                    height={384}
                   />
                 )}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -376,10 +379,12 @@ export default function CharityDashboard() {
               </TabsContent>
               <TabsContent value="upcoming" className="mt-6">
                 {charity === "Barrow-in-Furness Enterprise & Employability" && (
-                  <img
+                  <Image
                     className="w-full h-96 rounded-md object-cover mb-8"
                     src="https://res.cloudinary.com/subframe/image/upload/v1747780394/uploads/13131/pnnytpawyoltajejfcsh.png"
                     alt="Barrow-In-Furness"
+                    width={1200}
+                    height={384}
                   />
                 )}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
