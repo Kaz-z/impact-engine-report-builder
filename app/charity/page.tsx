@@ -4,7 +4,7 @@ import type React from "react";
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Calendar, Clock, FileText, Edit, PlusCircle, Eye, Download, CheckCircle as CheckCircleIcon, AlertCircle, XCircle } from "lucide-react";
+import { Calendar, Clock, FileText, Edit, PlusCircle, Eye, CheckCircle as CheckCircleIcon, AlertCircle, XCircle } from "lucide-react";
 import { Loading } from "../components/Loading";
 import {
   Card,
@@ -33,6 +33,7 @@ import { useAuth } from "../context/authContext";
 import { db } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useLoading } from "../context/loadingContext";
+import Image from "next/image";
 // Sample project data
 const sampleProjects: Project[] = [
   {
@@ -191,7 +192,7 @@ export default function CharityDashboard() {
         return <Badge variant="destructive"><XCircle className="mr-1 h-3 w-3" /> Rejected</Badge>;
     }
     if (status === 'draft') {
-        return <Badge className="bg-blue-500 text-white"><Edit className="mr-1 h-3 w-3" /> Draft</Badge>;
+        return <Badge className="bg-orange-600/90 text-white"><Edit className="mr-1 h-3 w-3" /> Draft</Badge>;
     }
 
     const daysRemaining = getDaysRemaining(dueDate);
@@ -293,8 +294,8 @@ export default function CharityDashboard() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header userEmail={user.email || undefined} />
-      <main className="flex-grow p-6 bg-gray-50">
+      <Header />
+      <main className="flex-grow p-6 bg-orange-50/30">
         <Card>
           <CardHeader>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
@@ -353,35 +354,54 @@ export default function CharityDashboard() {
                 <TabsTrigger value="upcoming">Upcoming Reports</TabsTrigger>
               </TabsList>
               <TabsContent value="all" className="mt-6">
+                {charity === "Barrow-in-Furness Enterprise & Employability" && (
+                  <Image
+                    className="w-full h-96 rounded-md object-cover mb-8"
+                    src="https://res.cloudinary.com/subframe/image/upload/v1747780394/uploads/13131/pnnytpawyoltajejfcsh.png"
+                    alt="Barrow-In-Furness"
+                    width={1200}
+                    height={384}
+                  />
+                )}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                   {/* Use original ProjectCard function */}
                   {sortProjects(filterProjectsByDate(projects)).map((project) => (
-                    <ProjectCard
-                      key={project.id}
-                      project={project}
-                      getReportStatusBadge={getReportStatusBadge}
-                      getProgressPercentage={getProgressPercentage}
-                      charityName={charity}
-                      charityRegNumber={charityRegNumber}
-                    />
+                    <div className="h-full" key={project.id}>
+                      <ProjectCard
+                        project={project}
+                        getReportStatusBadge={getReportStatusBadge}
+                        getProgressPercentage={getProgressPercentage}
+                        charityName={charity}
+                        charityRegNumber={charityRegNumber}
+                      />
+                    </div>
                   ))}
                 </div>
               </TabsContent>
               <TabsContent value="upcoming" className="mt-6">
+                {charity === "Barrow-in-Furness Enterprise & Employability" && (
+                  <Image
+                    className="w-full h-96 rounded-md object-cover mb-8"
+                    src="https://res.cloudinary.com/subframe/image/upload/v1747780394/uploads/13131/pnnytpawyoltajejfcsh.png"
+                    alt="Barrow-In-Furness"
+                    width={1200}
+                    height={384}
+                  />
+                )}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {sortProjects(
                     projects.filter(
                       (p) => getDaysRemaining(p.dateImpactReportDue) > 0
                     )
                   ).map((project) => (
-                     <ProjectCard
-                      key={project.id}
-                      project={project}
-                      getReportStatusBadge={getReportStatusBadge}
-                      getProgressPercentage={getProgressPercentage}
-                      charityName={charity}
-                      charityRegNumber={charityRegNumber}
-                    />
+                    <div className="h-full" key={project.id}>
+                      <ProjectCard
+                        project={project}
+                        getReportStatusBadge={getReportStatusBadge}
+                        getProgressPercentage={getProgressPercentage}
+                        charityName={charity}
+                        charityRegNumber={charityRegNumber}
+                      />
+                    </div>
                   ))}
                 </div>
               </TabsContent>
@@ -420,13 +440,13 @@ function ProjectCard({
   const isEarlySubmission = daysRemaining > 30;
   
   // Get appropriate icon, text, and STYLED BUTTON based on report status from DB
-  const getButtonContent = (): React.ReactNode => { // Return ReactNode
-    let buttonClass = "w-full"; // Base class
+  const getButtonContent = (): React.ReactNode => {
+    let buttonClass = "w-full";
     let buttonContent: React.ReactNode;
 
     switch (project.impactReportStatus) {
       case 'draft':
-        buttonClass += " bg-blue-600 hover:bg-blue-700 text-white"; // Blue for draft
+        buttonClass += " bg-orange-600/90 hover:bg-orange-700/90 text-white"; // Orange for draft
         buttonContent = (
           <span className="flex items-center justify-center">
             <Edit className="mr-2 h-4 w-4" />
@@ -452,30 +472,19 @@ function ProjectCard({
           </span>
         );
         break;
-      case 'approved': // New case for approved
+      case 'approved': // Modified case for approved
         return (
-          <div className="flex w-full space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 flex items-center justify-center"
-              onClick={() => console.log("Download clicked for:", project.id)} // Placeholder action
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Download
-            </Button>
-            <Button
-              size="sm"
-              className="flex-1 flex items-center justify-center bg-green-600 hover:bg-green-700 text-white"
-              onClick={handleNavigate} // Uses existing navigate function
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              View Impact Report
-            </Button>
-          </div>
+          <Button
+            size="sm"
+            className="w-full flex items-center justify-center bg-green-600 hover:bg-green-700 text-white" // Make it full width
+            onClick={handleNavigate}
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            View Impact Report
+          </Button>
         );
       default: // No status or other status - show Submit/Early Submit
-        buttonClass += " bg-blue-600 hover:bg-blue-700 text-white"; // Blue for submit
+        buttonClass += " bg-orange-600/90 hover:bg-orange-700/90 text-white"; // Orange for submit
         if (isEarlySubmission) {
             buttonContent = (
                 <span className="flex items-center justify-center">
@@ -494,7 +503,7 @@ function ProjectCard({
         break;
     }
 
-    // Return the complete Button component
+    // Return the complete Button component for other statuses
     return (
       <Button className={buttonClass} onClick={handleNavigate}>
         {buttonContent}
@@ -514,7 +523,7 @@ function ProjectCard({
   };
 
   return (
-    <Card>
+    <Card className="flex flex-col h-full">
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
@@ -527,7 +536,7 @@ function ProjectCard({
           {getReportStatusBadge(project.impactReportStatus, project.dateImpactReportDue)}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex-grow space-y-4">
         <div>
           <h4 className="text-sm font-medium mb-2">Objectives</h4>
           <ul className="space-y-1">
@@ -564,7 +573,7 @@ function ProjectCard({
           </div>
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="mt-auto">
         {/* Render the button returned by getButtonContent */}
         {getButtonContent()}
       </CardFooter>

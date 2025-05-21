@@ -55,7 +55,7 @@ const priorities = Object.keys(mercyMissionData);
 
 // Props for the component
 interface ProjectDetailsStepProps {
-  form: UseFormReturn<FormValues, object, undefined>;
+  form: UseFormReturn<FormValues>;
   isViewMode: boolean;
   nextStep: () => void;
   CountrySelect: React.ComponentType<{
@@ -284,10 +284,12 @@ export default function ProjectDetailsStep({
                     min="0"
                     placeholder="0.00"
                     {...field}
-                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                    disabled={isViewMode}
+                    readOnly
+                    disabled={true}
+                    className="bg-gray-50"
                   />
                 </FormControl>
+                <FormDescription>This amount is set from the gfa</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -304,10 +306,10 @@ export default function ProjectDetailsStep({
                     <FormControl>
                       <Button
                         variant={"outline"}
-                        className={`w-full pl-3 text-left font-normal ${
+                        className={`w-full pl-3 text-left font-normal bg-gray-50 ${
                           !field.value && "text-muted-foreground"
                         }`}
-                        disabled={isViewMode}
+                        disabled={true}
                       >
                         {field.value ? (
                           format(field.value, "dd/MM/yyyy")
@@ -324,10 +326,11 @@ export default function ProjectDetailsStep({
                       selected={field.value}
                       onSelect={field.onChange}
                       initialFocus
-                      disabled={isViewMode}
+                      disabled={true}
                     />
                   </PopoverContent>
                 </Popover>
+                <FormDescription>This date is set from the gfa</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -456,7 +459,7 @@ export default function ProjectDetailsStep({
           </div>
 
           {/* Project Countries */}
-          <div className="md:col-span-1">
+          <div className="md:col-span-2">
             <FormField
               control={form.control}
               name="projectCountry"
@@ -471,6 +474,66 @@ export default function ProjectDetailsStep({
                   <FormDescription>
                     Select the countries where the project operates.
                   </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Locality and Region */}
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="locality"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Locality*</FormLabel>
+                  <FormControl>
+                    <Input {...field} disabled={isViewMode} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="region"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Region*</FormLabel>
+                  <FormControl>
+                    <Input {...field} disabled={isViewMode} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* City and Postcode */}
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="city"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>City*</FormLabel>
+                  <FormControl>
+                    <Input {...field} disabled={isViewMode} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="postcode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Postcode (Optional)</FormLabel>
+                  <FormControl>
+                    <Input {...field} disabled={isViewMode} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

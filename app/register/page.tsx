@@ -49,6 +49,7 @@ export default function RegistrationForm() {
     { name: "Doctors Without Borders", domain: "doctorswithoutborders.org" },
     { name: "Save the Children", domain: "savethechildren.org" },
     { name: "World Wildlife Fund", domain: "worldwildlife.org" },
+    { name: "Age UK", domain: "ageuk.org.uk" },
   ]
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -57,7 +58,9 @@ export default function RegistrationForm() {
     const selectedCharity = charities.find(c => c.name === values.charity)
 
     // Add exception for specific email
-    if (values.email === "fajita786@gmail.com") {
+    if (values.email === "fajita786@gmail.com" || values.email === "impactengine@gmail.com" 
+      || values.email === "k.zia@hotmail.co.uk"
+    ) {
       // Proceed without charity domain check
     } else if (!selectedCharity || !values.email.endsWith(`@${selectedCharity.domain}`)) {
       toast.error("Email domain does not match the selected charity.", {

@@ -155,151 +155,165 @@ function ExpectedOutcomesStep({
         </div>
       </div>
 
-      {/* Outcome 2 - Optional */}
-      <div className="md:col-span-2 space-y-4 border rounded-lg p-6 mt-6">
-        <div className="flex items-center space-x-2">
-          <FormField
-            control={form.control}
-            name="includeOutcome2"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                    disabled={isViewMode}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Include Outcome 2</FormLabel>
-                </div>
-              </FormItem>
-            )}
-          />
+      {/* Outcome 2 - Optional: Conditionally render the entire block */}
+      {(!isViewMode || form.getValues("includeOutcome2")) && (
+        <div className="md:col-span-2 space-y-4 border rounded-lg p-6 mt-6">
+          <h3 className="font-semibold text-lg mb-2">Outcome 2</h3>
+          
+          {/* Checkbox is only relevant in edit mode */}
+          {!isViewMode && (
+            <div className="flex items-center space-x-2 mb-4">
+              <FormField
+                control={form.control}
+                name="includeOutcome2"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Include Outcome 2</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+
+          {/* Fields only render if checkbox is checked (handled by includeOutcome2 variable) */}
+          {includeOutcome2 && (
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="outcome2Qualitative"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Qualitative Description*</FormLabel>
+                    <FormControl>
+                      <MemoizedTextarea
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder="Describe the expected outcome in qualitative terms"
+                        className="min-h-20"
+                        disabled={isViewMode}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Describe what you hope to achieve with this outcome (max 500 characters)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="outcome2Quantitative"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantitative Measure*</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="e.g., '500 people trained' or '3 schools built'"
+                        disabled={isViewMode}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Provide a measurable indicator for this outcome
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
         </div>
+      )}
 
-        {includeOutcome2 && (
-          <div className="space-y-4 mt-4">
-            <FormField
-              control={form.control}
-              name="outcome2Qualitative"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Qualitative Description*</FormLabel>
-                  <FormControl>
-                    <MemoizedTextarea
-                      value={field.value}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                      placeholder="Describe the expected outcome in qualitative terms"
-                      className="min-h-20"
-                      disabled={isViewMode}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Describe what you hope to achieve with this outcome (max 500 characters)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      {/* Outcome 3 - Optional: Conditionally render the entire block */}
+      {(!isViewMode || form.getValues("includeOutcome3")) && (
+        <div className="md:col-span-2 space-y-4 border rounded-lg p-6 mt-6">
+          <h3 className="font-semibold text-lg mb-2">Outcome 3</h3>
 
-            <FormField
-              control={form.control}
-              name="outcome2Quantitative"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quantitative Measure*</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="e.g., '500 people trained' or '3 schools built'"
-                      disabled={isViewMode}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Provide a measurable indicator for this outcome
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        )}
-      </div>
+          {/* Checkbox is only relevant in edit mode */}
+          {!isViewMode && (
+            <div className="flex items-center space-x-2 mb-4">
+              <FormField
+                control={form.control}
+                name="includeOutcome3"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Include Outcome 3</FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
 
-      {/* Outcome 3 - Optional */}
-      <div className="md:col-span-2 space-y-4 border rounded-lg p-6 mt-6">
-        <div className="flex items-center space-x-2">
-          <FormField
-            control={form.control}
-            name="includeOutcome3"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                    disabled={isViewMode}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Include Outcome 3</FormLabel>
-                </div>
-              </FormItem>
-            )}
-          />
+          {/* Fields only render if checkbox is checked (handled by includeOutcome3 variable) */}
+          {includeOutcome3 && (
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="outcome3Qualitative"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Qualitative Description*</FormLabel>
+                    <FormControl>
+                      <MemoizedTextarea
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder="Describe the expected outcome in qualitative terms"
+                        className="min-h-20"
+                        disabled={isViewMode}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Describe what you hope to achieve with this outcome (max 500 characters)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="outcome3Quantitative"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantitative Measure*</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="e.g., '500 people trained' or '3 schools built'"
+                        disabled={isViewMode}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Provide a measurable indicator for this outcome
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
         </div>
-
-        {includeOutcome3 && (
-          <div className="space-y-4 mt-4">
-            <FormField
-              control={form.control}
-              name="outcome3Qualitative"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Qualitative Description*</FormLabel>
-                  <FormControl>
-                    <MemoizedTextarea
-                      value={field.value}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                      placeholder="Describe the expected outcome in qualitative terms"
-                      className="min-h-20"
-                      disabled={isViewMode}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Describe what you hope to achieve with this outcome (max 500 characters)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="outcome3Quantitative"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quantitative Measure*</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="e.g., '500 people trained' or '3 schools built'"
-                      disabled={isViewMode}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Provide a measurable indicator for this outcome
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Navigation Buttons */}
       <div className="flex justify-between mt-6">

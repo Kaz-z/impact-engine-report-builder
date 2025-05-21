@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import {
   // CalendarIcon, // Unused
   Save as SaveIcon,
@@ -16,6 +16,7 @@ import {
   Search,
   Calendar as CalendarIconOutline,
   Info as InfoIcon, // Add InfoIcon for the Alert
+  Download as DownloadIcon, // Add Download icon import
   // FileText, // Unused
 } from "lucide-react";
 import { toast } from "sonner";
@@ -58,6 +59,9 @@ import ExpectedOutcomesStep from "./components/steps/ExpectedOutcomesStep";
 import AchievedOutcomesStep from "./components/steps/AchievedOutcomesStep";
 import OutcomeAnalysisStep from "./components/steps/OutcomeAnalysisStep";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Import Alert components
+
+// Import react-to-print
+import { useReactToPrint } from 'react-to-print'; 
 
 // Define schema for image file metadata
 const fileMetadataSchema = z.object({
@@ -486,6 +490,10 @@ const formSchema = z
     outcome3Story: z.string().max(1500, "Max 1500 characters").optional(),
     outcome3Interviews: z.string().optional(),
     outcome3SocialMedia: z.string().optional(),
+    locality: z.string().min(1, "Locality is required"),
+    region: z.string().min(1, "Region is required"),
+    city: z.string().min(1, "City is required"),
+    postcode: z.string().optional(),
   })
   // Transform to set includeAchievedOutcome flags based on achieved data
   .transform((data) => {
@@ -659,6 +667,10 @@ export type FormValues = z.infer<typeof formSchema> & {
     uploadedAt?: string;
     fileName?: string;
   };
+  locality: string;
+  region: string;
+  city: string;
+  postcode?: string;
 };
 
 // Define type for Firestore data structure (dates as strings)
@@ -800,6 +812,107 @@ function CountrySelect({
   );
 }
 
+// --- ADD PRINT HELPERS --- 
+const formatDateForPrint = (dateString?: string | Date | null): string => {
+  if (!dateString) return 'N/A';
+  try {
+    // Handle ISO strings from Firestore and Date objects
+    const date = typeof dateString === 'string' ? parseISO(dateString) : (dateString instanceof Timestamp ? dateString.toDate() : dateString);
+    if (!date || isNaN(date.getTime())) return 'Invalid Date';
+    return format(date, 'dd MMM yyyy');
+  } catch (error) {
+    console.error("Error formatting date for print:", dateString, error);
+    return 'Invalid Date';
+  }
+};
+
+const formatCurrencyForPrint = (amount?: number | string | null): string => {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (num === undefined || num === null || isNaN(num)) return '£N/A';
+  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(num);
+};
+
+// --- ADD PRINTABLE COMPONENT --- 
+interface PrintableReportProps {
+  reportData: FormValues;
+}
+
+const PrintableReport = React.forwardRef<HTMLDivElement, PrintableReportProps>(({ reportData }, ref) => {
+  // Basic styles - can be expanded
+  const printStyles: React.CSSProperties = { padding: '20mm', fontFamily: 'Arial, sans-serif', color: '#000', fontSize: '10pt' };
+  const sectionStyle: React.CSSProperties = { marginTop: '15px', paddingTop: '10px', borderTop: '1px solid #ccc' };
+  const headingStyle: React.CSSProperties = { fontSize: '14pt', fontWeight: 'bold', marginBottom: '10px' };
+  const subHeadingStyle: React.CSSProperties = { fontSize: '12pt', fontWeight: 'bold', marginTop: '10px', marginBottom: '5px' };
+  const paraStyle: React.CSSProperties = { marginBottom: '5px', lineHeight: '1.4' };
+  const strongStyle: React.CSSProperties = { fontWeight: 'bold' };
+
+  // Helper to render outcome sections cleanly
+  const renderOutcomeSection = (outcomeNum: 1 | 2 | 3) => {
+    const qualitative = reportData[`outcome${outcomeNum}Qualitative` as keyof FormValues] as string | undefined;
+    const quantitative = reportData[`outcome${outcomeNum}Quantitative` as keyof FormValues] as string | undefined;
+    const achieved = reportData[`outcome${outcomeNum}Achieved` as keyof FormValues] as string | undefined;
+    const include = reportData[`includeOutcome${outcomeNum}` as keyof FormValues] as boolean | undefined;
+    const includeAchieved = reportData[`includeAchievedOutcome${outcomeNum}` as keyof FormValues] as boolean | undefined;
+
+    // Only render if the outcome was included OR it's outcome 1
+    if (outcomeNum === 1 || include) {
+      return (
+        <div style={sectionStyle}>
+          <h2 style={subHeadingStyle}>Outcome {outcomeNum}</h2>
+          {qualitative && <p style={paraStyle}><strong style={strongStyle}>Expected Qualitative:</strong> {qualitative}</p>}
+          {quantitative && <p style={paraStyle}><strong style={strongStyle}>Expected Quantitative:</strong> {quantitative}</p>}
+          {(includeAchieved || achieved) && <p style={paraStyle}><strong style={strongStyle}>Achieved:</strong> {achieved || 'N/A'}</p>} 
+          {/* Add achieved funding details, images, story etc. here if needed */}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div ref={ref} style={printStyles}>
+      <h1 style={headingStyle}>Impact Report: {reportData.projectName || 'N/A'}</h1>
+      <p style={paraStyle}><strong style={strongStyle}>Charity:</strong> {reportData.organizationName || 'N/A'}</p>
+      <p style={paraStyle}><strong style={strongStyle}>Funding Amount:</strong> {formatCurrencyForPrint(reportData.totalFundingAmount)}</p>
+      <p style={paraStyle}><strong style={strongStyle}>Funding Date:</strong> {formatDateForPrint(reportData.dateFundingStarted)}</p>
+      <p style={paraStyle}><strong style={strongStyle}>Report Submitted:</strong> {formatDateForPrint(reportData.dateImpactReportSubmitted)}</p>
+      
+      <div style={sectionStyle}>
+        <h2 style={subHeadingStyle}>Project Summary</h2>
+        <p style={paraStyle}>{reportData.projectSummary || 'N/A'}</p>
+      </div>
+
+      {/* Render Outcome sections */} 
+      {renderOutcomeSection(1)}
+      {renderOutcomeSection(2)}
+      {renderOutcomeSection(3)}
+
+      {/* Add Beneficiary Details section */}
+      <div style={sectionStyle}>
+          <h2 style={subHeadingStyle}>Beneficiary Details</h2>
+          <p style={paraStyle}><strong style={strongStyle}>Direct Beneficiaries:</strong> {reportData.directBeneficiaries ?? 'N/A'}</p>
+          <p style={paraStyle}><strong style={strongStyle}>Indirect Beneficiaries:</strong> {reportData.indirectBeneficiaries ?? 'N/A'}</p>
+          {/* Add more beneficiary breakdown if needed */}
+      </div>
+
+      {/* Add Contact Details section */}
+       <div style={sectionStyle}>
+          <h2 style={subHeadingStyle}>Contact Details</h2>
+          <p style={paraStyle}><strong style={strongStyle}>Name:</strong> {reportData.contactName || 'N/A'}</p>
+          <p style={paraStyle}><strong style={strongStyle}>Position:</strong> {reportData.position || 'N/A'}</p>
+          <p style={paraStyle}><strong style={strongStyle}>Email:</strong> {reportData.email || 'N/A'}</p>
+          <p style={paraStyle}><strong style={strongStyle}>Telephone:</strong> {reportData.telephone || 'N/A'}</p>
+       </div>
+
+      <div style={{ ...sectionStyle, borderTop: 'none', marginTop: '30px', textAlign: 'center', fontSize: '8pt', color: '#666' }}>
+        Generated from Impact Engine
+      </div>
+    </div>
+  );
+});
+PrintableReport.displayName = 'PrintableReport';
+// --- END PRINTABLE COMPONENT ---
+
 export default function ImpactReportPage() {
   const params = useParams() as { id: string };
   const router = useRouter();
@@ -825,6 +938,9 @@ export default function ImpactReportPage() {
   const earlySubmission = searchParams
     ? searchParams.get("early") === "true"
     : false;
+
+  // Ref for printable component
+  const printableRef = useRef<HTMLDivElement>(null);
 
   // Initialize form with additional fields
   const form = useForm<FormValues>({
@@ -880,8 +996,30 @@ export default function ImpactReportPage() {
       outcome1Images: [],
       outcome2Images: [],
       outcome3Images: [],
+      locality: "",
+      region: "",
+      city: "",
+      postcode: "",
     },
   });
+
+  // --- MODIFY PRINT HOOK SETUP --- 
+  const handlePrint = useReactToPrint({
+    contentRef: printableRef,
+    documentTitle: `${form.getValues("projectName") || 'Impact'}_Report`,
+    onPrintError: (error) => {
+        console.error("Error printing report:", error);
+        toast.error("Failed to initiate PDF download.");
+    },
+    pageStyle: `
+      @page { size: A4; margin: 20mm; }
+      @media print {
+        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .no-print { display: none; }
+      }
+    `,
+  });
+  // --- END PRINT HOOK SETUP ---
 
   // Add animation effect when page is loaded
   useEffect(() => {
@@ -896,23 +1034,16 @@ export default function ImpactReportPage() {
   // Load project data and any saved/submitted report data from Firestore
   useEffect(() => {
     const fetchProjectData = async () => {
-      // Ensure user and necessary params are available
       if (!user || !projectId || !charityName) {
           console.error("fetchProjectData: Missing user, projectId, or charityName.");
-          setIsLoading(false); // Stop loading if critical info is missing
-          // Optionally redirect or show an error message
+          setIsLoading(false);
           return;
       }
-
-      console.log(`fetchProjectData: Fetching data for charity '${charityName}', project '${projectId}'`);
       setIsLoading(true);
-      startLoading(); // Start global loading
+      startLoading();
 
       try {
-        // Check if this is an early submission (from URL param)
         setIsEarlySubmission(earlySubmission);
-
-        // Format the due date if provided (from URL param)
         if (searchParams && searchParams.get("dueDate")) {
           try {
             const dueDate = new Date(searchParams.get("dueDate") as string);
@@ -922,90 +1053,92 @@ export default function ImpactReportPage() {
           }
         }
 
-        // Get the Firestore document reference for the project
         const projectDocRef = doc(db, "charities", charityName, "projects", projectId);
         const docSnap = await getDoc(projectDocRef);
 
         if (docSnap.exists()) {
           const projectDbData = docSnap.data();
           const status = projectDbData.impactReportStatus || 'not-started';
-          const reportData = projectDbData.impactReport || {}; // Get saved report data or empty object
+          const reportDataFromDb = projectDbData.impactReport || {}; // Saved report-specific data
           const dbRejectionComment = projectDbData.rejectionComment || null;
 
-          console.log(`fetchProjectData: Found project. Status: ${status}`, projectDbData);
-
-          // Set the basic project data state (name, etc.)
           setProjectData({
             id: projectId,
             name: projectDbData.projectName || `Project ${projectId}`,
-            // Add other project-level fields if needed by the UI
           });
 
-          let formData: Partial<FormValues> = {}; // Initialize empty formData of the correct partial type
+          let currentReportData: Partial<FormValues> = {}; 
 
           if (status === 'submitted' || status === 'approved') {
-            console.log("fetchProjectData: Report status indicates view mode (submitted/approved).");
             setIsViewMode(true);
-            setRejectionCommentToDisplay(null); // Clear any previous rejection comment
-            // Use the data stored in the impactReport field for submitted/approved
-            formData = { ...reportData };
+            setRejectionCommentToDisplay(null);
+            currentReportData = { ...reportDataFromDb };
           } else if (status === 'draft' || status === 'rejected') {
-            console.log(`fetchProjectData: Report status is ${status}. Loading saved data in edit mode.`);
             setIsViewMode(false);
             if (status === 'rejected' && dbRejectionComment) {
               setRejectionCommentToDisplay(dbRejectionComment);
             } else {
-              setRejectionCommentToDisplay(null); // Clear if not rejected or no comment
+              setRejectionCommentToDisplay(null);
             }
-            // Use the data stored in the impactReport field for drafts/rejected
-            formData = { ...reportData };
-          } else { // 'not-started' or null/undefined
-            console.log("fetchProjectData: Report status is not-started. Using defaults.");
+            currentReportData = { ...reportDataFromDb };
+          } else { // 'not-started' or other
             setIsViewMode(false);
-            // Use default values, pre-fill only basic info
-            formData = {
-               organizationName: charityName,
-               charityRegistrationNumber: charityRegNumber,
-               telephone: "+44 ", // Default prefix
-               projectCountry: [], // Default empty
-               // Add any other *essential* defaults NOT covered by form's defaultValues
+            // For a new report, some fields might default or come from projectDbData
+            currentReportData = {
+               telephone: "+44 ", 
+               projectCountry: projectDbData.projectCountry || [], 
+               // Let Zod defaults handle most, but override with master project data below
             };
           }
 
-          // Prepare data for the form, converting Timestamps and handling potential missing fields
           const preparedFormData = {
-              // Override with fetched data
-              ...formData,
-              // Ensure name/reg number are from the query params primarily, then DB, then default
-              organizationName: charityName || projectDbData.charityName || '',
-              charityRegistrationNumber: charityRegNumber || projectDbData.charityRegistrationNumber || '',
-              // Convert Firestore Timestamps back to JS Dates or handle ISO strings
-              dateFundingStarted: formData.dateFundingStarted instanceof Timestamp
-                  ? formData.dateFundingStarted.toDate()
-                  : formData.dateFundingStarted && typeof formData.dateFundingStarted === 'string' ? new Date(formData.dateFundingStarted) : undefined,
-              dateImpactReportSubmitted: formData.dateImpactReportSubmitted instanceof Timestamp
-                  ? formData.dateImpactReportSubmitted.toDate()
-                  : formData.dateImpactReportSubmitted && typeof formData.dateImpactReportSubmitted === 'string' ? new Date(formData.dateImpactReportSubmitted) : new Date(), // Default to today if missing/invalid?
-              // Ensure arrays are arrays (handle potential issues from Firestore save)
-              projectCountry: Array.isArray(formData.projectCountry) ? formData.projectCountry : [],
-              detailedEthnicities: Array.isArray(formData.detailedEthnicities) ? formData.detailedEthnicities : [],
-              geographyBreakdown: Array.isArray(formData.geographyBreakdown) ? formData.geographyBreakdown : [],
-              outcome1Images: Array.isArray(formData.outcome1Images) ? formData.outcome1Images : [],
-              outcome2Images: Array.isArray(formData.outcome2Images) ? formData.outcome2Images : [],
-              outcome3Images: Array.isArray(formData.outcome3Images) ? formData.outcome3Images : [],
-              // Set contract URL from saved data
-              partnerContract: formData.partnerContract, // Preserve the object { url, name, uploadedAt } if exists
-          } as FormValues; // Assert the final type to ensure compatibility with form.reset
+            ...form.formState.defaultValues, // Start with Zod defaults
+            ...currentReportData,             // Overlay with report-specific data (draft/submitted)
+            
+            // --- Ensure master project data overrides --- 
+            organizationName: charityName || projectDbData.charityName || '',
+            charityRegistrationNumber: charityRegNumber || projectDbData.charityRegistrationNumber || '',
+            projectName: projectDbData.projectName || currentReportData.projectName || '',
+            totalFundingAmount: projectDbData.fundingAmount !== undefined ? projectDbData.fundingAmount : (currentReportData.totalFundingAmount || 0),
+            
+            // **** THIS IS THE KEY CHANGE FOR dateFundingStarted ****
+            dateFundingStarted: projectDbData.dateFundingGiven instanceof Timestamp
+                ? projectDbData.dateFundingGiven.toDate()
+                : (projectDbData.dateFundingGiven && typeof projectDbData.dateFundingGiven === 'string'
+                    ? new Date(projectDbData.dateFundingGiven)
+                    : undefined),
 
-          // Set the contract file URL state specifically if present
+            // dateImpactReportSubmitted should come from currentReportData or be new if not set
+            dateImpactReportSubmitted: currentReportData.dateImpactReportSubmitted instanceof Timestamp
+                ? currentReportData.dateImpactReportSubmitted.toDate()
+                : (currentReportData.dateImpactReportSubmitted && typeof currentReportData.dateImpactReportSubmitted === 'string'
+                    ? new Date(currentReportData.dateImpactReportSubmitted)
+                    : new Date()),
+            
+            projectCountry: Array.isArray(currentReportData.projectCountry) && currentReportData.projectCountry.length > 0 
+                ? currentReportData.projectCountry 
+                : (projectDbData.projectCountry || []),
+            
+            priorityObjective: projectDbData.priorityObjective || currentReportData.priorityObjective || '',
+            coverageObjective: projectDbData.coverageObjective || currentReportData.coverageObjective || '',
+            projectSummary: projectDbData.projectSummary || currentReportData.projectSummary || '',
+
+            // Ensure other arrays are initialized properly if they might be undefined in currentReportData
+            detailedEthnicities: Array.isArray(currentReportData.detailedEthnicities) ? currentReportData.detailedEthnicities : [],
+            geographyBreakdown: Array.isArray(currentReportData.geographyBreakdown) ? currentReportData.geographyBreakdown : [],
+            outcome1Images: Array.isArray(currentReportData.outcome1Images) ? currentReportData.outcome1Images : [],
+            outcome2Images: Array.isArray(currentReportData.outcome2Images) ? currentReportData.outcome2Images : [],
+            outcome3Images: Array.isArray(currentReportData.outcome3Images) ? currentReportData.outcome3Images : [],
+            partnerContract: currentReportData.partnerContract, // This comes from the report data (uploaded file info)
+
+          } as FormValues;
+
           if (preparedFormData.partnerContract?.url) {
                setContractFileURL(preparedFormData.partnerContract.url);
           }
 
-          console.log("fetchProjectData: Resetting form with prepared data:", preparedFormData);
-          form.reset(preparedFormData); // Reset the form with the fetched/prepared data
+          form.reset(preparedFormData);
 
-          // Set today's date if it's an early submission and not already set
           if (earlySubmission && !form.getValues("dateImpactReportSubmitted")) {
               form.setValue("dateImpactReportSubmitted", new Date());
           }
@@ -1013,23 +1146,21 @@ export default function ImpactReportPage() {
         } else {
           console.error(`fetchProjectData: Project document not found at charities/${charityName}/projects/${projectId}`);
           toast.error("Project data not found.");
-          // Handle not found case - maybe redirect or show specific error
         }
       } catch (error) {
         console.error("Error fetching project data from Firestore:", error);
         toast.error("Failed to load project data.");
       } finally {
-        // Add a small delay for smoother loading transition
         setTimeout(() => {
           setIsLoading(false);
-          stopLoading(); // Stop global loading
-        }, 300); // Slightly increased delay
+          stopLoading();
+        }, 300);
       }
     };
 
     fetchProjectData();
 
-  }, [user, projectId, charityName, charityRegNumber, earlySubmission, searchParams, form, startLoading, stopLoading]); // Added form, start/stopLoading to dependency array
+  }, [user, projectId, charityName, charityRegNumber, earlySubmission, searchParams, form, startLoading, stopLoading]);
 
   // Check if contract is required whenever partnership involvement changes
   useEffect(() => {
@@ -1391,7 +1522,7 @@ export default function ImpactReportPage() {
 
   return (
     <>
-      <Header userEmail={user.email} />
+      <Header />
       <div className="container mx-auto py-8 px-4">
         <Card
           className={`max-w-4xl mx-auto ${isViewMode ? "border-green-500" : rejectionCommentToDisplay ? "border-yellow-500" : ""} 
@@ -1607,7 +1738,7 @@ export default function ImpactReportPage() {
                     </Button>
                   )}
 
-                  <div className="space-x-2">
+                  <div className="space-x-2 flex items-center">
                     <Button
                       type="button"
                       variant="outline"
@@ -1616,7 +1747,20 @@ export default function ImpactReportPage() {
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       {isViewMode ? "Back to Projects" : "Cancel"}
                     </Button>
+                    
+                    {/* ADD DOWNLOAD BUTTON - visible only in view mode */} 
+                    {isViewMode && (
+                        <Button 
+                            type="button"
+                            variant="outline"
+                            onClick={handlePrint} 
+                        >
+                            <DownloadIcon className="mr-2 h-4 w-4" />
+                            Download PDF
+                        </Button>
+                    )}
 
+                    {/* Submit Button - visible only in edit mode on last step */}
                     {!isViewMode && currentStep === 3 && (
                       <Button 
                         type="submit" 
@@ -1633,6 +1777,14 @@ export default function ImpactReportPage() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* --- ADD HIDDEN PRINTABLE COMPONENT RENDER --- */}
+      {isViewMode && (
+          <div style={{ display: 'none' }}>
+              <PrintableReport ref={printableRef} reportData={form.getValues()} />
+          </div>
+      )}
+      {/* --- END HIDDEN PRINTABLE COMPONENT RENDER --- */}
     </>
   );
 }
